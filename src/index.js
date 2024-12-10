@@ -11,6 +11,8 @@ const {
 const { SearchApp } = require("./searchApp");
 const config = require("./config");
 
+console.log(config);
+
 // Create adapter.
 // See https://aka.ms/about-bot-adapter to learn more about adapters.
 
@@ -44,7 +46,7 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
 // Listen for incoming requests.
 server.post("/api/messages", async (req, res) => {
   await adapter.process(req, res, async (context) => {
-    console.log("Context para:", context._activity.value.parameters);
+    console.log("Context parameter:", context._activity.value.parameters);
     
     await searchApp.run(context);
   });
