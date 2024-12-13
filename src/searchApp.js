@@ -6,11 +6,6 @@ const { TeamsActivityHandler, CardFactory } = require("botbuilder");
 const config = require("./config");
 const azure = require("azure-storage");
 
-// Microsoft Graph
-// import { Client } from "@microsoft/microsoft-graph-client";
-// import { TokenCredentialAuthenticationProvider } from "@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials";
-// import { MessageExtensionTokenResponse, handleMessageExtensionQueryWithSSO, OnBehalfOfCredentialAuthConfig, OnBehalfOfUserCredential } from "@microsoft/teamsfx";
-
 const { Client } = require("@microsoft/microsoft-graph-client");
 const { TokenCredentialAuthenticationProvider } = require("@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials");
 const {
@@ -73,7 +68,6 @@ class SearchApp extends TeamsActivityHandler {
     var candidateData = [];
 
     // Define the name of the table you want to store data in
-    // const tableName = config.tableName; -> undefined
     const tableName = config.storageTableName;
     
     // When the Bot Service Auth flow completes, the query.State will contain a magic code used for verification.
@@ -91,73 +85,27 @@ class SearchApp extends TeamsActivityHandler {
     if (!tokenResponse || !tokenResponse.token) {
       // There is no token, so the user has not signed in yet.
       // Retrieve the OAuth Sign in Link to use in the MessagingExtensionResult Suggested Actions
-      try {
-        const signInLink = await context.adapter.getSignInLink(context, "authbot");
-    
-        console.log(signInLink);
-    
-        return {
-          composeExtension: {
-            type: 'auth',
-            suggestedActions: {
-              actions: [
-                {
-                  type: 'openUrl',
-                  value: signInLink,
-                  title: 'Bot Service OAuth Test'
-                },
-              ],
-            },
+      const signInLink = await context.adapter.getSignInLink(
+        context,
+        "authbot"
+      );
+      consloe.log("signInLink:", signInLink);
+
+      return {
+        composeExtension: {
+          type: 'auth',
+          suggestedActions: {
+            actions: [
+              {
+                type: 'openUrl',
+                title: 'Bot Service OAuth',
+                value: signInLink
+              },
+            ],
           },
-        };
-      } catch (error) {
-        console.error("Error fetching the sign-in link:", error);
-    
-        // Return an error message
-        return {
-          composeExtension: {
-            type: 'message',
-            text: 'There was an issue connecting to the bot. Please try again later or contact support.',
-            suggestedActions: {
-              actions: [
-                {
-                  type: 'openUrl',
-                  value: 'https://support.example.com',  // Link to support if needed
-                  title: 'Contact Support'
-                },
-              ],
-            },
-          },
-        };
-      }
-    }
-    
-
-    // if (!tokenResponse || !tokenResponse.token) {
-    //   // There is no token, so the user has not signed in yet.
-    //   // Retrieve the OAuth Sign in Link to use in the MessagingExtensionResult Suggested Actions
-    //   const signInLink = await context.adapter.getSignInLink(
-    //     context,
-    //     "authbot"
-    //   );
-
-    //   console.log(signInLink);
-
-    //   return {
-    //     composeExtension: {
-    //       type: 'auth',
-    //       suggestedActions: {
-    //         actions: [
-    //           {
-    //             type: 'openUrl',
-    //             value: signInLink,
-    //             title: 'Bot Service OAuth'
-    //           },
-    //         ],
-    //       },
-    //     },
-    //   };
-    // }
+        },
+      }      
+    };
 
     // Microsoft Graph
     const authConfig = {
@@ -166,14 +114,14 @@ class SearchApp extends TeamsActivityHandler {
       clientSecret: config.botPassword,
     };
 
-    // Initialize the On-Behalf-Of Credential
-    const oboCredential = new OnBehalfOfUserCredential(context.adapter, authConfig);
-    console.log(oboCredential);
+    // // Initialize the On-Behalf-Of Credential
+    // const oboCredential = new OnBehalfOfUserCredential(context.adapter, authConfig);
+    // console.log(oboCredential);
 
-    // Create Microsoft Graph client
-    const graphClient = Client.initWithMiddleware({
-      authProvider: new TokenCredentialAuthenticationProvider(oboCredential),
-    });
+    // // Create Microsoft Graph client
+    // const graphClient = Client.initWithMiddleware({
+    //   authProvider: new TokenCredentialAuthenticationProvider(oboCredential),
+    // });
 
 
     // Define a function to fetch candidates based on parameters
