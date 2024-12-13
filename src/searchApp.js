@@ -15,6 +15,7 @@ const {
   OnBehalfOfUserCredential
 } = require("@microsoft/teamsfx");
 
+const { OnBehalfOfCredential, DeviceCodeCredential } = require("@azure/identity");
 
 
 class SearchApp extends TeamsActivityHandler {
@@ -107,21 +108,54 @@ class SearchApp extends TeamsActivityHandler {
       }      
     };
 
-    // Microsoft Graph
-    const authConfig = {
+    // Initialize DeviceCodeCredential
+    const credential = new DeviceCodeCredential({
       tenantId: config.tenantId,
-      clientId: config.botId,
-      clientSecret: config.botPassword,
-    };
+      clientId: config.clientId,
+      userPromptCallback: (info) => {
+        console.log(info.message); // Display the device code message to the user
+      },
+    });
 
-    // // Initialize the On-Behalf-Of Credential
-    // const oboCredential = new OnBehalfOfUserCredential(context.adapter, authConfig);
-    // console.log(oboCredential);
+    // Create authentication provider for Microsoft Graph
+    const authProvider = new TokenCredentialAuthenticationProvider(credential, {
+      scopes: ['User.Read'], // Specify the required scopes
+    });
 
-    // // Create Microsoft Graph client
-    // const graphClient = Client.initWithMiddleware({
-    //   authProvider: new TokenCredentialAuthenticationProvider(oboCredential),
-    // });
+    // Initialize Microsoft Graph client
+    const graphClient = Client.initWithMiddleware({ authProvider: authProvider });
+    
+    async function fetchCandidatesFromGraph(graphClient, filters) {
+      const queryParams = [];
+    
+      if (filters.skills) {
+        queryParams.push(`skills eq '${filters.skills}'`); // Replace with your attribute
+      }
+      if (filters.country) {
+        queryParams.push(`country eq '${filters.country}'`); // Replace with your attribute
+      }
+      if (filters.availability !== undefined) {
+        queryParams.push(`availability eq ${filters.availability}`); // Replace with your attribute
+      }
+    
+      const filterQuery = queryParams.length > 0 ? queryParams.join(" and ") : "";
+    
+      try {
+        const users = await graphClient
+          .api(`/users`)
+          .filter(filterQuery)
+          .select("id,displayName,skills,country,availability") // Specify required fields
+          .get();
+    
+        return users.value;
+      } catch (error) {
+        console.error("Error fetching candidates from Microsoft Graph:", error);
+        return [];
+      }
+    }
+
+    const candidatesFromGraph = await fetchCandidatesFromGraph(graphClient, searchObject);
+
 
 
     // Define a function to fetch candidates based on parameters
@@ -196,7 +230,8 @@ class SearchApp extends TeamsActivityHandler {
     var candidates = await fetchCandidates(searchObject);
 
     var attachments = [];
-    candidateData = candidates;
+    // candidateData = candidates;
+    candidateData = candidatesFromGraph
     console.log("Candidates:", candidateData);
 
     // Create Adaptive Card object
